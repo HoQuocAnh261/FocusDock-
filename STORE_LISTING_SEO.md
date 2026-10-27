@@ -11,7 +11,7 @@
 | **Short Description** | `100% offline Pomodoro timer with ambient soundscapes, daily reminders, and AI-free deep work tools for Windows 11.` |
 | **Primary Category** | `Productivity` |
 | **Sub-category** | `Personal` hoặc `Health & Fitness` |
-| **Privacy Policy URL** | `https://hoquocanh261.github.io/FocusDock/privacy.html` |
+| **Privacy Policy URL** | `https://hoquocanh261.github.io/FocusDock-/privacy.html` |
 
 ---
 
@@ -149,7 +149,7 @@ Bạn cần cung cấp URL công khai trỏ tới trang privacy.html. Cách nhan
    - Tạo repo `FocusDock` trên GitHub (public).
    - Push toàn bộ thư mục `G:\FocusDock\` lên.
    - Bật GitHub Pages → Branch: `main` → Folder: `/root`.
-   - URL privacy: `https://hoquocanh261.github.io/FocusDock/privacy.html`
+   - URL privacy: `https://hoquocanh261.github.io/FocusDock-/privacy.html`
 
 2. Dán URL này vào ô **Privacy Policy URL** trong Partner Center.
 
