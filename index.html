@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusDock — Pomodoro Timer & Ambient Sounds</title>
+
+  <!-- PWA & Store Metadata -->
+  <meta name="description" content="Minimalist Windows 11 Pomodoro timer and offline ambient sound mixer for deep work and flow state.">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="color-scheme" content="dark light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-name" content="FocusDock">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- Stylesheet (Cache-Busted v2.4.4) -->
+  <link rel="stylesheet" href="./style.css?v=2.4.4">
+  <!-- Privacy Policy (Microsoft Store Required) -->
+  <link rel="privacy-policy" href="./privacy.html">
+
+  <!-- Service Worker Registration & Cache Purge on Localhost -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (let r of regs) r.unregister();
+        });
+        if (window.caches) {
+          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        }
+      } else {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+            .catch(err => console.warn('[PWA] SW register failed:', err));
+        });
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Confetti Celebration Canvas (Zero-dependency offline particle fireworks) -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- First-Run Onboarding Overlay -->
+  <div class="onboarding-overlay" id="onboardingOverlay" aria-live="polite">
+    <div class="onboarding-card">
+      <div class="onboarding-glow"></div>
+      <div class="onboarding-icon">✨</div>
+      <div class="onboarding-content">
+        <h3 class="onboarding-title" id="lblOnboardingTitle">Welcome to FocusDock!</h3>
+        <p class="onboarding-desc" id="lblOnboardingDesc">
+          Press <kbd>Space</kbd> to begin deep work, pick ambient soundscapes on the right, or press <kbd>M</kbd> for compact Mini Dock.
+        </p>
+      </div>
+      <button type="button" class="btn primary btn-sm" id="btnDismissOnboard">Got it!</button>
+    </div>
+  </div>
+
+  <!-- High-Impact Celebration Modal Overlay -->
+  <div class="celebration-overlay" id="celebrationOverlay" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="celebration-card" id="celebrationCard">
+      <div class="celebration-card-glow"></div>
+
+      <!-- Topbar with Badge and Dismiss Button -->
+      <div class="celebration-topbar">
+        <span class="celebration-badge" id="celebrationBadge">🎉 PHIÊN TẬP TRUNG HOÀN THÀNH</span>
+        <button type="button" class="btn-celebration-close" id="btnCloseCelebration" title="Close (Esc)" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Hero Banner -->
+      <div class="celebration-hero">
+        <div class="celebration-icon-bounce">
+          <span class="celebration-big-icon" id="celebrationBigIcon">🏆</span>
+        </div>
+        <h2 class="celebration-title" id="celebrationTitle">Xuất sắc! Bạn đã hoàn thành trọn vẹn!</h2>
+        <p class="celebration-subtitle" id="celebrationSubtitle">Đã đến lúc giải phóng năng lượng và chăm sóc cơ thể</p>
+        <div class="celebration-ringing" id="celebrationRinging">
+          <span class="ringing-bell-pulse">🔔 <span id="lblCelebrationRingingText">Chuông đang reo lặp lại cho đến khi bạn bấm qua...</span></span>
+        </div>
+      </div>
+
+      <!-- Session Goal Highlight (Visible when a goal was set) -->
+      <div class="celebration-goal-box" id="celebrationGoalBox">
+        <div class="goal-highlight-icon">🎯</div>
+        <div class="goal-highlight-content">
+          <span class="goal-highlight-label" id="lblGoalHighlightLabel">Mục tiêu phiên:</span>
+          <strong class="goal-highlight-text" id="celebrationGoalText">Hoàn thành báo cáo</strong>
+        </div>
+      </div>
+
+      <!-- Daily Stats Grid -->
+      <div class="celebration-stats-strip">
+        <div class="c-stat-pill">
+          <span class="c-stat-val" id="cStatSessions">1</span>
+          <span class="c-stat-lbl" id="lblCSessions">Phiên hôm nay</span>
+        </div>
+        <div class="c-stat-divider"></div>
+        <div class="c-stat-pill">
+          <span class="c-stat-val" id="cStatTime">25m</span>
+          <span class="c-stat-lbl" id="lblCTime">Thời gian tập trung</span>
+        </div>
+        <div class="c-stat-divider"></div>
+        <div class="c-stat-pill">
+          <span class="c-stat-val" id="cStatStreak">1 🔥</span>
+          <span class="c-stat-lbl" id="lblCStreak">Chuỗi ngày</span>
+        </div>
+      </div>
+
+      <!-- Recommended Mindful Activity -->
+      <div class="celebration-tip-box" id="celebrationTipBox">
+        <span class="c-tip-icon" id="cTipIcon">💧</span>
+        <div class="c-tip-body">
+          <strong class="c-tip-title" id="cTipTitle">Uống một ly nước lọc</strong>
+          <span class="c-tip-desc" id="cTipDesc">Uống một ly nước đầy để bù nước và giúp não bộ tỉnh táo trở lại.</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="celebration-actions">
+        <button type="button" class="btn-c-primary" id="btnCelebrationTakeBreak">
+          ☕ <span id="lblBtnTakeBreak">Bắt đầu nghỉ ngơi ngay (Space / Enter)</span>
+        </button>
+        <button type="button" class="btn-c-secondary" id="btnCelebrationDismiss">
+          <span id="lblBtnDismiss">Đóng lại (Esc)</span>
+        </button>
+      </div>
+
+      <!-- Visible 20s Auto-Dismiss Progress Bar -->
+      <div class="celebration-timer-track">
+        <div class="celebration-timer-fill" id="celebrationTimerFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- High-Impact Daily Reminder Alarm Overlay -->
+  <div class="reminder-alarm-overlay" id="reminderAlarmOverlay" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="reminder-alarm-card" id="reminderAlarmCard">
+      <div class="reminder-alarm-glow"></div>
+
+      <!-- Top Bar: Badge and Close Button -->
+      <div class="reminder-alarm-topbar">
+        <span class="reminder-alarm-badge" id="lblReminderAlarmBadge">⏰ ĐÃ ĐẾN GIỜ NHẮC NHỞ HÀNG NGÀY</span>
+        <button type="button" class="btn-reminder-alarm-close" id="btnCloseReminderAlarm" title="Close (Esc)" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Hero Section with Pulsing Activity Icon -->
+      <div class="reminder-alarm-hero">
+        <div class="reminder-icon-pulse" id="reminderAlarmIconBox">
+          <span class="reminder-big-icon" id="reminderAlarmIcon">🏋️‍♂️</span>
+        </div>
+        <div class="reminder-alarm-time" id="reminderAlarmTime">16:00</div>
+        <h2 class="reminder-alarm-title" id="reminderAlarmTitle">Tập gym</h2>
+        <p class="reminder-alarm-subtitle" id="reminderAlarmSubtitle">Đã đúng 16:00 rồi! Hãy tạm gác công việc và đi tập gym thôi nào! 💪</p>
+        <div class="reminder-alarm-ringing" id="reminderAlarmRinging">
+          <span class="ringing-bell-pulse">🔔 <span id="lblRingingRepeatText">Chuông đang reo lặp lại cho đến khi bạn bấm qua...</span></span>
+        </div>
+      </div>
+
+      <!-- Action Buttons: Complete or Snooze -->
+      <div class="reminder-alarm-actions">
+        <button type="button" class="btn-r-primary" id="btnReminderAlarmDone">
+          ✓ <span id="lblBtnReminderDone">Bắt đầu ngay / Hoàn thành</span>
+        </button>
+        <button type="button" class="btn-r-secondary" id="btnReminderAlarmSnooze">
+          💤 <span id="lblBtnReminderSnooze">Nhắc lại sau 5 phút</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- High-Impact Focus Ready Overlay (When Break Ends - Time to Focus) -->
+  <div class="focus-ready-overlay" id="focusReadyOverlay" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="focus-ready-card" id="focusReadyCard">
+      <div class="focus-ready-glow"></div>
+
+      <!-- Topbar with Badge and Dismiss Button -->
+      <div class="focus-ready-topbar">
+        <span class="focus-ready-badge" id="lblFocusReadyBadge">🎯 ĐÃ HẾT GIỜ NGHỈ NGƠI</span>
+        <button type="button" class="btn-focus-ready-close" id="btnCloseFocusReady" title="Close (Esc)" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Hero Banner -->
+      <div class="focus-ready-hero">
+        <div class="focus-ready-icon-pulse" id="focusReadyIconPulse">
+          <span class="focus-ready-big-icon">⚡</span>
+        </div>
+        <h2 class="focus-ready-title" id="lblFocusReadyTitle">Sẵn sàng tập trung nào!</h2>
+        <p class="focus-ready-subtitle" id="lblFocusReadySubtitle">Thời gian nghỉ đã kết thúc. Hãy nạp năng lượng và bắt đầu phiên làm việc mới! 🚀</p>
+        <div class="focus-ready-ringing" id="focusReadyRinging">
+          <span class="ringing-bell-pulse">🔔 <span id="lblFocusReadyRingingText">Chuông đang reo lặp lại cho đến khi bạn bấm qua...</span></span>
+        </div>
+      </div>
+
+      <!-- Session Goal Box if set -->
+      <div class="focus-ready-goal-box" id="focusReadyGoalBox" style="display: none;">
+        <div class="goal-highlight-icon">🎯</div>
+        <div class="goal-highlight-content">
+          <span class="goal-highlight-label" id="lblFocusReadyGoalLabel">Mục tiêu tiếp theo:</span>
+          <strong class="goal-highlight-text" id="focusReadyGoalText">Hoàn thành công việc</strong>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="focus-ready-actions">
+        <button type="button" class="btn-f-primary" id="btnFocusReadyStart">
+          ⚡ <span id="lblBtnFocusReadyStart">Bắt đầu tập trung ngay (Space / Enter)</span>
+        </button>
+        <button type="button" class="btn-f-secondary" id="btnFocusReadySnooze">
+          ☕ <span id="lblBtnFocusReadySnooze">Nghỉ thêm 2 phút</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Streak Notification Toast (Fast & Gentle alerts) -->
+  <div class="streak-toast" id="streakToast" aria-live="polite"></div>
+
+  <!-- Main Fluent Window Shell -->
+  <div class="window-shell" id="windowShell" role="application">
+    
+    <!-- Titlebar -->
+    <header class="titlebar" id="titlebar">
+      <div class="titlebar-left">
+        <div class="app-icon-wrapper">
+          <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <span class="app-title">FocusDock</span>
+        <span class="badge-offline" id="lblOfflineBadge" title="100% Offline • Procedural Audio Engine">100% Offline</span>
+      </div>
+
+      <div class="titlebar-center">
+        <span class="hotkey-badge" id="lblHotkeyBadge" title="Press Space to Start/Pause"><kbd>Space</kbd> Start/Pause</span>
+      </div>
+
+      <div class="titlebar-right">
+        <!-- Quick Language Switcher Button -->
+        <button type="button" class="icon-btn lang-btn" id="btnQuickLang" title="Change Language (English / Tiếng Việt)" aria-label="Change Language">
+          <span id="langCurrentBadge">EN</span>
+        </button>
+
+        <!-- Mini Dock Toggle Button -->
+        <button type="button" class="icon-btn" id="btnToggleMini" title="Toggle Mini Dock Mode (M)" aria-label="Toggle Mini Dock Mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+
+        <!-- Master Mute Toggle -->
+        <button type="button" class="icon-btn" id="btnMasterMute" title="Toggle Sound (Mute)" aria-label="Toggle Sound">
+          <svg id="iconVolume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button type="button" class="icon-btn" id="btnThemeToggle" title="Toggle Theme" aria-label="Toggle Theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Daily Reminders Trigger -->
+        <button type="button" class="icon-btn" id="btnOpenReminders" title="Daily Reminders (Nhắc nhở hàng ngày)" aria-label="Daily Reminders">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="reminder-badge-dot" id="reminderBadgeDot" style="display: none;"></span>
+        </button>
+
+        <!-- Donate Button -->
+        <button type="button" class="icon-btn btn-donate-heart" id="btnOpenDonate" title="Support FocusDock ☕" aria-label="Donate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+
+        <!-- Settings Modal Trigger -->
+        <button type="button" class="icon-btn" id="btnOpenSettings" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Body Grid (Timer & Sound Mixer) -->
+    <main class="app-body">
+      
+      <!-- Left Column: Circular Pomodoro Timer -->
+      <section class="timer-section">
+        <!-- Mode Tabs -->
+        <nav class="mode-tabs" role="tablist">
+          <button type="button" class="mode-tab active" data-mode="focus" role="tab" aria-selected="true">
+            <span class="mode-dot"></span> <span class="tab-text" id="tabFocus">Focus</span>
+          </button>
+          <button type="button" class="mode-tab" data-mode="shortBreak" role="tab" aria-selected="false">
+            <span class="mode-dot"></span> <span class="tab-text" id="tabShortBreak">Short Break</span>
+          </button>
+          <button type="button" class="mode-tab" data-mode="longBreak" role="tab" aria-selected="false">
+            <span class="mode-dot"></span> <span class="tab-text" id="tabLongBreak">Long Break</span>
+          </button>
+        </nav>
+
+        <!-- Quick Duration Presets for Current Mode -->
+        <div class="duration-presets" id="durationPresets" role="group" aria-label="Duration selector">
+          <button type="button" class="duration-chip" data-mins="15">15m</button>
+          <button type="button" class="duration-chip active" data-mins="25">25m</button>
+          <button type="button" class="duration-chip" data-mins="45">45m</button>
+          <button type="button" class="duration-chip" data-mins="60">60m</button>
+          <button type="button" class="duration-chip custom-chip" id="btnCustomDuration" title="Custom duration">⏱️ Custom</button>
+        </div>
+
+        <!-- SVG Circular Dial -->
+        <div class="timer-dial-wrapper">
+          <svg class="timer-svg" viewBox="0 0 280 280">
+            <circle class="timer-circle-bg" cx="140" cy="140" r="120"></circle>
+            <circle class="timer-circle-progress" id="timerProgress" cx="140" cy="140" r="120"></circle>
+          </svg>
+
+          <!-- Inside Center Content -->
+          <div class="timer-center-content">
+            <span class="timer-mode-label" id="timerModeLabel">DEEP WORK</span>
+            <div class="timer-digits" id="timerDisplay" title="Click to set custom duration">25:00</div>
+            <span class="timer-session-info" id="sessionCounter">Session 1 of 4</span>
+          </div>
+        </div>
+
+        <!-- Session Goal / Focus Intention Input -->
+        <div class="session-goal-box" id="sessionGoalBox">
+          <span class="goal-icon">🎯</span>
+          <input type="text" class="goal-input" id="inputSessionGoal" 
+                 placeholder="What is your focus goal for this session?" 
+                 maxlength="75" autocomplete="off">
+          <button type="button" class="btn-clear-goal" id="btnClearGoal" title="Clear goal" aria-label="Clear goal">✕</button>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="timer-controls">
+          <button type="button" class="ctrl-btn secondary" id="btnResetTimer" title="Reset Timer (R)" aria-label="Reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 2v6h6"></path>
+              <path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path>
+            </svg>
+          </button>
+
+          <button type="button" class="ctrl-btn primary" id="btnPlayPause" title="Start/Pause (Space)" aria-label="Start">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span id="playBtnText">Start Focus</span>
+          </button>
+
+          <button type="button" class="ctrl-btn secondary" id="btnSkipTimer" title="Skip to Next (S)" aria-label="Skip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 4 15 12 5 20 5 4"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Health Reminder / Break Activity Card -->
+        <div class="break-tip-card" id="breakTipCard">
+          <div class="break-tip-header">
+            <span class="break-tip-badge" id="breakTipBadge">Break Activity</span>
+            <button type="button" class="btn-tip-dice" id="btnNextTip" title="Another suggestion" aria-label="Random tip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="break-tip-body">
+            <div class="break-tip-icon" id="breakTipIcon">💧</div>
+            <div class="break-tip-text">
+              <span class="break-tip-title" id="breakTipTitle">Time to Hydrate!</span>
+              <p class="break-tip-desc" id="breakTipDesc">Drink a glass of water to refresh your mind.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Focus Bar Summary -->
+        <div class="daily-stats-card">
+          <div class="stats-item">
+            <span class="stats-num" id="statCompleted">0</span>
+            <span class="stats-label" id="lblStatSessions">Sessions</span>
+          </div>
+          <div class="stats-divider"></div>
+          <div class="stats-item">
+            <span class="stats-num" id="statFocusTime">0m</span>
+            <span class="stats-label" id="lblStatFocusTime">Focus Time</span>
+          </div>
+          <div class="stats-divider"></div>
+          <div class="stats-item">
+            <span class="stats-num" id="statStreak">1</span>
+            <span class="stats-label" id="lblStatStreak">Day Streak</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Ambient Sound Mixer -->
+      <section class="mixer-section">
+        <div class="mixer-header">
+          <div class="mixer-title-group">
+            <h2 class="mixer-title" id="lblMixerTitle">Ambient Soundscapes</h2>
+            <p class="mixer-subtitle" id="lblMixerSubtitle">Procedural, infinite audio & custom sounds offline</p>
+          </div>
+          <div class="mixer-actions">
+            <!-- Add Custom Sound Button -->
+            <button type="button" class="btn-action-pill" id="btnOpenAddCustomSound">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span id="lblAddCustomSound">Add Custom Sound</span>
+            </button>
+            <button type="button" class="btn-text btn-pause-all" id="btnPauseResumeAllSounds" title="Pause / Resume All Active Sounds">
+              <span id="lblPauseResumeAll">⏸ Pause All</span>
+            </button>
+            <button type="button" class="btn-text" id="btnStopAllSounds">Stop All</button>
+          </div>
+        </div>
+
+        <!-- Built-in Procedural Sounds Grid -->
+        <div class="sound-grid" id="proceduralSoundGrid">
+          <!-- 1. Brown Noise -->
+          <div class="sound-card" data-sound="brown">
+            <div class="sound-card-top">
+              <div class="sound-icon-box brown">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 10s3-3 5-3 5 6 7 6 5-3 8-3"></path>
+                  <path d="M2 14s3-3 5-3 5 6 7 6 5-3 8-3"></path>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNameBrown">Brown Noise</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescBrown">Deep rumble • Voice blocker</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="brown" title="Play / Pause" aria-label="Play or pause Brown Noise">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="brown">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="brown" min="0" max="100" value="50">
+            </div>
+          </div>
+
+          <!-- 2. Rain -->
+          <div class="sound-card" data-sound="rain">
+            <div class="sound-card-top">
+              <div class="sound-icon-box rain">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 13v8"></path>
+                  <path d="M8 13v8"></path>
+                  <path d="M12 15v8"></path>
+                  <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNameRain">Rain on Window</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescRain">Steady rain • Soothing drops</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="rain" title="Play / Pause" aria-label="Play or pause Rain on Window">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="rain">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="rain" min="0" max="100" value="50">
+            </div>
+          </div>
+
+          <!-- 3. Campfire -->
+          <div class="sound-card" data-sound="campfire">
+            <div class="sound-card-top">
+              <div class="sound-icon-box fire">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNameFire">Campfire Ember</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescFire">Warm embers • Wood crackles</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="campfire" title="Play / Pause" aria-label="Play or pause Campfire">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="campfire">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="campfire" min="0" max="100" value="50">
+            </div>
+          </div>
+
+          <!-- 4. Alpha Waves (12Hz) -->
+          <div class="sound-card" data-sound="alpha">
+            <div class="sound-card-top">
+              <div class="sound-icon-box alpha">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNameAlpha">Alpha Waves (12Hz)</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescAlpha">Binaural beat • Deep flow state</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="alpha" title="Play / Pause" aria-label="Play or pause Alpha Waves">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="alpha">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="alpha" min="0" max="100" value="40">
+            </div>
+          </div>
+
+          <!-- 5. Pink Noise -->
+          <div class="sound-card" data-sound="pink">
+            <div class="sound-card-top">
+              <div class="sound-icon-box pink">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNamePink">Pink Noise</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescPink">Balanced 1/f • Natural waterfall</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="pink" title="Play / Pause" aria-label="Play or pause Pink Noise">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="pink">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="pink" min="0" max="100" value="50">
+            </div>
+          </div>
+
+          <!-- 6. White Noise -->
+          <div class="sound-card" data-sound="white">
+            <div class="sound-card-top">
+              <div class="sound-icon-box white">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="6" y1="12" x2="8" y2="12"></line>
+                  <line x1="11" y1="12" x2="13" y2="12"></line>
+                  <line x1="16" y1="12" x2="18" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                </svg>
+              </div>
+              <div class="sound-info">
+                <div class="sound-name-row">
+                  <span class="sound-name" id="sndNameWhite">White Noise</span>
+                  <span class="sound-time-badge" style="display: none;">00:00</span>
+                </div>
+                <span class="sound-desc" id="sndDescWhite">Full spectrum • Crisp focus</span>
+              </div>
+              <button type="button" class="btn-sound-play" data-sound="white" title="Play / Pause" aria-label="Play or pause White Noise">
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                  <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                  <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                </svg>
+              </button>
+              <label class="switch">
+                <input type="checkbox" class="sound-toggle" data-sound="white">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="sound-slider-box">
+              <input type="range" class="sound-volume" data-sound="white" min="0" max="100" value="40">
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom User-Added Sounds Section -->
+        <div class="custom-sounds-wrapper" id="customSoundsSection" style="display: none;">
+          <h3 class="custom-section-title" id="lblCustomSectionTitle">Your Custom Soundscapes</h3>
+          <div class="sound-grid" id="customSoundGrid">
+            <!-- Custom sound cards dynamically injected here -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Mini Dock Bar (Toggled when in Mini Mode) -->
+    <div class="mini-dock-bar" id="miniDockBar">
+      <div class="mini-left">
+        <span class="mini-status-dot"></span>
+        <span class="mini-mode-text" id="miniModeText">Focus</span>
+      </div>
+      <div class="mini-digits" id="miniDigits">25:00</div>
+      <div class="mini-actions">
+        <!-- ITEM 4: Sound indicator when audio is playing -->
+        <span class="mini-sound-indicator" id="miniSoundIndicator" title="Ambient sounds playing" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </span>
+        <button type="button" class="mini-btn" id="btnMiniPlay" title="Start/Pause">
+          <svg id="miniPlayIcon" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <button type="button" class="mini-btn" id="btnMiniExpand" title="Expand to Full Window">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Dialog Modal -->
+  <dialog class="fluent-dialog" id="settingsModal">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="lblSettingsTitle">FocusDock Settings</h3>
+        <button type="button" class="icon-btn" id="btnCloseSettings">✕</button>
+      </div>
+      
+      <div class="dialog-body">
+        <!-- Language Selector -->
+        <div class="setting-group">
+          <h4 class="setting-group-title" id="lblSettingLanguage">Language</h4>
+          <select id="selectLanguage" class="fluent-select">
+            <option value="en" selected>English (Default)</option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="ja">日本語 (Japanese)</option>
+          </select>
+        </div>
+
+        <div class="setting-group">
+          <h4 class="setting-group-title" id="lblSettingDurations">Timer Durations (Minutes)</h4>
+          <div class="duration-inputs">
+            <label class="input-field">
+              <span id="lblFieldFocus">Focus</span>
+              <input type="number" id="inputFocusTime" min="1" max="120" value="25">
+            </label>
+            <label class="input-field">
+              <span id="lblFieldShortBreak">Short Break</span>
+              <input type="number" id="inputShortBreak" min="1" max="30" value="5">
+            </label>
+            <label class="input-field">
+              <span id="lblFieldLongBreak">Long Break</span>
+              <input type="number" id="inputLongBreak" min="1" max="60" value="15">
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h4 class="setting-group-title" id="lblSettingPreferences">Preferences</h4>
+          <div class="toggle-row">
+            <span id="lblToggleAutoBreaks">Auto-start breaks</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleAutoBreaks">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span id="lblToggleSoundAlert">Tibetan bowl bell when completed</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleSoundAlert" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label-with-sub">
+              <span id="lblToggleRepeatAlarm">Repeat alarm chime until passed</span>
+              <small class="toggle-subtext" id="subToggleRepeatAlarm">Chime rings repeatedly every 7 seconds until you pass or dismiss</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleRepeatAlarm" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span id="lblToggleDesktopNotif">Windows desktop notifications</span>
+            <label class="switch">
+              <input type="checkbox" id="toggleDesktopNotif" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label-with-sub">
+              <span id="lblToggleWindowsStartup">Start with Windows</span>
+              <small class="toggle-subtext" id="subToggleWindowsStartup">Launch FocusDock automatically when your PC boots</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleWindowsStartup">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h4 class="setting-group-title" id="lblSettingShortcuts">Keyboard Shortcuts</h4>
+          <ul class="shortcut-list">
+            <li><kbd>Space</kbd> <span id="lblKeySpace">Start / Pause timer</span></li>
+            <li><kbd>R</kbd> <span id="lblKeyR">Reset current session</span></li>
+            <li><kbd>S</kbd> <span id="lblKeyS">Skip to next session</span></li>
+            <li><kbd>M</kbd> <span id="lblKeyM">Toggle Mini Dock mode</span></li>
+          </ul>
+        </div>
+
+        <!-- About Section -->
+        <div class="setting-group setting-group-about">
+          <div class="about-row">
+            <div class="about-app-info">
+              <img src="./icons/icon-192.png" alt="FocusDock icon" class="about-app-icon">
+              <div>
+                <div class="about-app-name">FocusDock</div>
+                <div class="about-app-version" id="lblAppVersion">Version 2.4.4</div>
+              </div>
+            </div>
+            <div class="about-links">
+              <a href="./privacy.html" target="_blank" class="about-link" id="lblPrivacyLink">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Privacy Policy
+              </a>
+              <button type="button" class="about-link" id="btnAboutDonate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                Support FocusDock
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn secondary" id="btnTestChime">🔔 Test Bell</button>
+        <div class="dialog-footer-actions">
+          <button type="button" class="btn ghost btn-reset-defaults" id="btnResetDefaults" title="Reset all settings to factory defaults">Reset to Defaults</button>
+          <button type="button" class="btn secondary" id="btnCancelSettings">Cancel</button>
+          <button type="button" class="btn primary" id="btnSaveSettings">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Add Custom Sound Dialog Modal -->
+  <dialog class="fluent-dialog" id="customSoundModal">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="lblAddCustomModalTitle">Add Custom Ambient Sound</h3>
+        <button type="button" class="icon-btn" id="btnCloseCustomModal">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <div class="setting-group">
+          <label class="input-field">
+            <span id="lblCustomSoundName">Sound Name</span>
+            <input type="text" id="inputCustomSoundName" placeholder="e.g. Cozy Cafe, Cat Purring, Lo-Fi Beat..." maxlength="32">
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <span class="dropzone-label" id="lblChooseAudio">Audio File (MP3, WAV, OGG, M4A, FLAC)</span>
+          <div class="dropzone-box" id="audioDropzone">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+            <p class="dropzone-text" id="dropzonePrompt">Click or drag & drop audio file here</p>
+            <span class="file-name-preview" id="selectedFilePreview"></span>
+            <input type="file" id="inputAudioFile" accept="audio/*" style="display: none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn secondary" id="btnCancelCustomSound">Cancel</button>
+        <button type="button" class="btn primary" id="btnConfirmAddSound" disabled>Add Sound</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Daily Reminders & Alarms Modal Dialog -->
+  <dialog class="fluent-dialog reminders-dialog" id="remindersModal">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="lblRemindersModalTitle">⏰ Daily Reminders & Alarms</h3>
+        <button type="button" class="icon-btn" id="btnCloseReminders" title="Close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Add New Reminder Card -->
+        <div class="add-reminder-box">
+          <h4 class="setting-group-title" id="lblAddReminderSection">Add Daily Reminder</h4>
+          
+          <div class="reminder-form-row">
+            <label class="input-field time-field">
+              <span id="lblReminderTimeField">Time (24h)</span>
+              <input type="time" id="inputReminderTime" value="16:00" required>
+            </label>
+            <label class="input-field title-field">
+              <span id="lblReminderTitleField">Activity Name</span>
+              <input type="text" id="inputReminderTitle" placeholder="e.g. Go to gym, Drink water, Read..." maxlength="45" value="Tập gym">
+            </label>
+          </div>
+
+          <!-- Quick Category Icon Chips -->
+          <div class="reminder-quick-chips">
+            <span class="quick-chips-label" id="lblQuickChipsLabel">Quick Presets:</span>
+            <div class="chips-row">
+              <button type="button" class="r-chip active" data-icon="🏋️‍♂️" data-title="Tập gym">🏋️‍♂️ Gym</button>
+              <button type="button" class="r-chip" data-icon="💧" data-title="Uống nước">💧 Water</button>
+              <button type="button" class="r-chip" data-icon="📚" data-title="Đọc sách">📚 Read</button>
+              <button type="button" class="r-chip" data-icon="🧘" data-title="Vươn vai & Kéo giãn">🧘 Stretch</button>
+              <button type="button" class="r-chip" data-icon="🚶" data-title="Đi dạo thư giãn">🚶 Walk</button>
+              <button type="button" class="r-chip" data-icon="💊" data-title="Uống thuốc / Vitamin">💊 Meds</button>
+            </div>
+          </div>
+
+          <div class="reminder-form-row days-row">
+            <label class="input-field select-field">
+              <span id="lblReminderDaysField">Repeat</span>
+              <select id="selectReminderDays">
+                <option value="daily" id="optDaysDaily">Everyday (Hàng ngày)</option>
+                <option value="weekdays" id="optDaysWeekdays">Weekdays (Thứ 2 - Thứ 6)</option>
+                <option value="weekends" id="optDaysWeekends">Weekends (Thứ 7 - CN)</option>
+              </select>
+            </label>
+            <button type="button" class="btn primary btn-add-reminder" id="btnAddReminder">
+              <span id="lblBtnAddReminder">+ Add Reminder</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reminders List -->
+        <div class="reminders-list-section">
+          <h4 class="setting-group-title" id="lblActiveRemindersTitle">Your Scheduled Reminders</h4>
+          <div class="reminders-list" id="remindersList">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn secondary" id="btnDoneReminders">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Donate Dialog Modal -->
+  <dialog class="fluent-dialog dialog-donate" id="donateModal" aria-labelledby="donateTitleLbl">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="donateTitleLbl">Support FocusDock ☕</h3>
+        <button type="button" class="icon-btn" id="btnCloseDonate" aria-label="Close">✕</button>
+      </div>
+
+      <div class="dialog-body donate-body">
+
+        <!-- Hero message -->
+        <div class="donate-hero">
+          <div class="donate-hero-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </div>
+          <p class="donate-hero-text">FocusDock is <strong>100% free</strong>, no ads, no subscriptions. If it helps you focus and get things done — a small coffee goes a long way 🙏</p>
+        </div>
+
+        <!-- Donate options -->
+        <div class="donate-options">
+
+          <a class="donate-card" href="https://ko-fi.com/chilifevietnam" target="_blank" rel="noopener noreferrer" id="donateLinkKofi">
+            <div class="donate-card-icon donate-icon-kofi">
+              <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 5.975.08 8.067c.68 8.995 9.78 9.026 9.78 9.026h.056c9 0 9.78-9.026 9.78-9.026 .048-.741.038-1.45.011-2.115h.28c1.66 0 3.59-1.424 3.653-3.71a3.41 3.41 0 0 0-.803-2.447zm-2.162 2.95c-.163.994-.96 1.653-1.918 1.653h-.296c-.114-1.294-.246-2.42-.367-3.18h.663c.962 0 2.08.585 1.918 1.527z"/>
+              </svg>
+            </div>
+            <div class="donate-card-body">
+              <span class="donate-card-name">Ko-fi</span>
+              <span class="donate-card-desc">Buy me a coffee — one-time or monthly</span>
+            </div>
+            <svg class="donate-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+
+          <a class="donate-card" href="https://paypal.me/hqanh99" target="_blank" rel="noopener noreferrer" id="donateLinkPaypal">
+            <div class="donate-card-icon donate-icon-paypal">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 0 1 .923-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.777-4.471z"/>
+              </svg>
+            </div>
+            <div class="donate-card-body">
+              <span class="donate-card-name">PayPal</span>
+              <span class="donate-card-desc">Send any amount via PayPal</span>
+            </div>
+            <svg class="donate-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+
+        </div>
+
+        <!-- Thank you note -->
+        <p class="donate-thanks">Every contribution directly funds continued development — new features, bug fixes, and keeping FocusDock free forever. Thank you! 💙</p>
+
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Audio Engine & Main App Scripts (Cache-Busted v2.4.4) -->
+  <script src="./audio-engine.js?v=2.4.4"></script>
+  <script src="./app.js?v=2.4.4"></script>
+</body>
+</html>

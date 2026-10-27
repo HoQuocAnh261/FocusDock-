@@ -1,0 +1,8 @@
+# Edge local user profile
+.edge_profile/
+
+# Node logs & local environment
+*.log
+node_modules/
+.DS_Store
+Thumbs.db

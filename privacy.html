@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — FocusDock</title>
+  <meta name="description" content="Privacy Policy for FocusDock Pomodoro & Ambient Sound Dock. 100% Offline with zero data collection.">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="stylesheet" href="./style.css?v=2.4.4">
+  <script>
+    (function() {
+      try {
+        const s = JSON.parse(localStorage.getItem('focusdock_settings') || '{}');
+        if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    body {
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .privacy-container {
+      max-width: 760px;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-window);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+      padding: 36px 44px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .privacy-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-window);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }
+
+    .privacy-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .privacy-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-card);
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-primary);
+    }
+
+    .privacy-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .privacy-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .privacy-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .privacy-badge-box {
+      background: rgba(16, 185, 129, 0.10);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-card);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      color: #10b981;
+      font-size: 13.5px;
+      font-weight: 500;
+    }
+
+    .privacy-badge-box svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .privacy-section {
+      margin-bottom: 26px;
+    }
+
+    .privacy-section h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .privacy-section p {
+      font-size: 13.5px;
+      line-height: 1.68;
+      color: var(--text-secondary);
+      margin: 0 0 10px 0;
+    }
+
+    .privacy-list {
+      margin: 8px 0 14px 20px;
+      padding: 0;
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      line-height: 1.68;
+    }
+
+    .privacy-list li {
+      margin-bottom: 7px;
+    }
+
+    .privacy-footer {
+      border-top: 1px solid var(--border-window);
+      padding-top: 22px;
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn-back-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      background: var(--accent-primary);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-back-app:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-back-app svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .copyright {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="privacy-container" role="main">
+
+    <header class="privacy-header">
+      <div class="privacy-title-group">
+        <div class="privacy-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="privacy-title">Privacy Policy</h1>
+          <div class="privacy-meta">FocusDock Desktop Application • Effective Date: September 26, 2026</div>
+        </div>
+      </div>
+      <button type="button" class="icon-btn" id="btnPrivacyTheme" title="Toggle Dark/Light Mode" aria-label="Toggle Theme" style="width:36px;height:36px;border-radius:10px;background:var(--bg-control);border:1px solid var(--border-card);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);transition:all var(--duration-fast);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </header>
+
+    <div class="privacy-badge-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>FocusDock operates <strong>100% Offline</strong>. No data ever leaves your device. Zero cloud sync, zero tracking, zero analytics.</span>
+    </div>
+
+    <section class="privacy-section">
+      <h2>1. Overview</h2>
+      <p>
+        <strong>FocusDock</strong> ("the Application") is a Pomodoro focus timer and ambient sound dock built with a strict <em>privacy-by-design</em> architecture. We believe your focus sessions, goals, reminders, daily stats, and work rhythms are entirely personal and belong exclusively to you.
+      </p>
+      <p>
+        This Privacy Policy explains how FocusDock handles information when you install and use the application via Microsoft Store or as a Progressive Web Application (PWA) on Windows 11.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>2. Information We Do NOT Collect</h2>
+      <p>Because FocusDock runs entirely client-side without any remote backend servers or third-party SDKs, we do <strong>not</strong> collect:</p>
+      <ul class="privacy-list">
+        <li><strong>Personal Information:</strong> No names, email addresses, phone numbers, or account credentials of any kind.</li>
+        <li><strong>Session & Focus Data:</strong> All Pomodoro sessions, daily goals, custom session targets, completion streaks, and focus history stay strictly in your device's local storage.</li>
+        <li><strong>Reminder & Schedule Data:</strong> Daily reminders, alarm times, and activity names you configure are stored entirely on-device and never sent anywhere.</li>
+        <li><strong>Audio & Sound Files:</strong> Any custom ambient sound files you upload (MP3, WAV, FLAC, OGG) are stored in your browser's IndexedDB. They are never uploaded or transmitted.</li>
+        <li><strong>Telemetry & Analytics:</strong> No tracking scripts, analytics beacons, crash reporters, or usage monitoring of any kind.</li>
+        <li><strong>Device Information:</strong> No device fingerprints, IP addresses, MAC addresses, or location data.</li>
+        <li><strong>Cookies & Identifiers:</strong> The application does not set or read any advertising or tracking cookies.</li>
+      </ul>
+    </section>
+
+    <section class="privacy-section">
+      <h2>3. How Your Data is Stored Locally</h2>
+      <p>
+        All of your data — including Pomodoro settings, session goals, daily statistics, completion streaks, reminder schedules, custom sound files, theme preferences, and language settings — is stored exclusively on your local device using two standard browser APIs:
+      </p>
+      <ul class="privacy-list">
+        <li><strong>localStorage:</strong> Stores settings, stats, reminders, and preferences as JSON strings.</li>
+        <li><strong>IndexedDB:</strong> Stores custom ambient audio files (MP3, WAV, FLAC, OGG) you choose to upload into the app.</li>
+      </ul>
+      <p>
+        This data is sandboxed to your device and is never uploaded, synced, or shared with any remote server or third party.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>4. Local Server Architecture</h2>
+      <p>
+        When running as a Windows desktop application, FocusDock uses a lightweight local Node.js HTTP server bound exclusively to <code>127.0.0.1:8081</code> (localhost). This server:
+      </p>
+      <ul class="privacy-list">
+        <li>Is <strong>not accessible from the internet</strong> or any external network — it only serves files to your local browser window.</li>
+        <li>Provides two local API endpoints (<code>/api/startup</code>) that interact only with your own Windows Registry to manage the "Start with Windows" toggle. No data leaves your machine.</li>
+        <li>Makes <strong>zero outbound network requests</strong> of any kind during operation.</li>
+      </ul>
+    </section>
+
+    <section class="privacy-section">
+      <h2>5. Offline Mode & Service Worker</h2>
+      <p>
+        FocusDock is powered by an offline <strong>Service Worker</strong> that caches all application code (HTML, CSS, JavaScript, icons) on your local hard drive. Once installed, FocusDock operates with zero internet connectivity. All procedural ambient sounds (Brown Noise, Rain, Campfire, Alpha Waves, Pink Noise, White Noise) are generated in real-time using the Web Audio API — no audio files are ever downloaded from the internet.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>6. Data Deletion Rights</h2>
+      <p>You have complete ownership and control over all your data at any time:</p>
+      <ul class="privacy-list">
+        <li><strong>Settings Reset:</strong> Open Settings inside the app to reset preferences to defaults.</li>
+        <li><strong>Reminders:</strong> Delete individual reminders or all reminders via the Reminders modal.</li>
+        <li><strong>Custom Sounds:</strong> Delete custom uploaded audio files directly from the Soundscapes panel.</li>
+        <li><strong>Full Wipe:</strong> Uninstalling the application or clearing your browser/app storage removes all data permanently from your device.</li>
+      </ul>
+    </section>
+
+    <section class="privacy-section">
+      <h2>7. Children's Privacy</h2>
+      <p>
+        FocusDock does not collect any data from anyone, including children under the age of 13. The application contains no advertising, no in-app purchases, and no social features. It is completely safe for all audiences.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>8. Compliance with Microsoft Store Policy</h2>
+      <p>
+        This policy complies with the <strong>Microsoft Store Developer Agreement</strong> and <strong>App Certification Requirements (Section 10.5.1: Personal Information)</strong>. FocusDock has no capability to collect, transmit, or store personal data on remote servers.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>9. Changes to This Policy</h2>
+      <p>
+        If we make material changes to this Privacy Policy, the updated version will be included in the next application update submitted to the Microsoft Store. Continued use of FocusDock after such updates constitutes acceptance of the revised policy.
+      </p>
+    </section>
+
+    <section class="privacy-section">
+      <h2>10. Contact & Questions</h2>
+      <p>
+        If you have any questions or feedback regarding this Privacy Policy, you may contact the development team through the official GitHub repository issue tracker or your Microsoft Store developer support link. We aim to respond within 3 business days.
+      </p>
+    </section>
+
+    <footer class="privacy-footer">
+      <a href="./index.html" class="btn-back-app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Back to FocusDock</span>
+      </a>
+      <span class="copyright">© 2026 FocusDock. All rights reserved.</span>
+    </footer>
+
+  </main>
+
+  <script>
+    const themeBtn = document.getElementById('btnPrivacyTheme');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try {
+          const s = JSON.parse(localStorage.getItem('focusdock_settings') || '{}');
+          s.theme = next;
+          localStorage.setItem('focusdock_settings', JSON.stringify(s));
+        } catch (e) {}
+      });
+    }
+  </script>
+</body>
+</html>
